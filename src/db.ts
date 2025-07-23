@@ -56,5 +56,6 @@ export {
     User,
     Tag,
     Content,
+    contentTypes,
     Link
 }

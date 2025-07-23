@@ -1,10 +1,11 @@
 import express from "express"; 
-import { User, Content, Link, Tag} from "./db"
+import { User, Content, Link, Tag, contentTypes} from "./db"
 import mongoose from "mongoose";
 import {z} from "zod";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import {config} from "./config";
+import authMiddleware from "./middleware";
 // import jwt from "jsonwebtoken";
 
 const app = express();
@@ -52,10 +53,12 @@ app.post("/api/v1/signup",async (req,res)=>{
         userId: user._id,
     }, config.JWT_SECRET);
 
+
     res.status(200).json({
         message : "User created successfully",
         token: token
     })
+
 } catch(err){
     res.status(500).json({
         message: "Internal server error. Please try again later."
@@ -99,6 +102,7 @@ app.post("/api/v1/signin",async(req,res)=>{
         userId: user._id,
     },config.JWT_SECRET);
 
+
     res.status(200).json({
         message: "Signin Successfully",
         token: token
@@ -110,12 +114,67 @@ app.post("/api/v1/signin",async(req,res)=>{
 }
 });
 
-app.post("api/v1/content", (req,res)=>{
+const contentSchema = z.object({
+    type: z.enum(contentTypes),
+    link: z.string().url(),
+    title: z.string(),
+    tags: z.array(z.string()),
+})
+
+app.post("/api/v1/content",authMiddleware, async(req,res)=>{
+   // console.log("enter in post content");
+    try{
+    const {success} = contentSchema.safeParse(req.body);
+    if(!success){
+        return res.status(400).json({message: "Invalid content format"})
+    }
+// console.log("Incoming data:", req.body);
+
+    const { type, link, title, tags} = req.body;
+
+    await Content.create({
+        type,
+        link,
+        title,
+        //@ts-ignore
+        userId: req.userId,
+        tags:[],
+    })
+
+// console.log("Parsed Zod:", data);
+
+    return res.status(200).json({message: "Content added successfully"})
+} catch(err){
+    console.log("error in content posting")
+    return res.status(500).json({messages: "Internal server error"})
+}
 
 })
 
-app.get("api/v1/content", (req,res)=>{
+app.get("/api/v1/content",authMiddleware, async(req,res)=>{
+try{
+    //@ts-ignore
+    const user = req.userId;
+    
+    if(!user){
+        return res.status(404).json({message: "User not found"})
+    }
+    //@ts-ignore
+    const content = await Content.find({userId:user})
+    .populate({
+        path:"tags",
+        model:"Tag"
+    })
+    .populate({
+        path:"userId",
+        model:"User"
+    });
+    // console.log(content);
 
+    return res.status(200).json({ content });
+} catch (err) {
+    return res.status(500).json({message: "Internal error"});
+}
 })
 
 app.delete("api/v1/brain/content", (req,res)=>{
