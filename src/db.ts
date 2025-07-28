@@ -41,9 +41,12 @@ const contentSchema = new mongoose.Schema({
     userId: { type: Types.ObjectId, ref: 'User', required: true },
 })
 
+
+
 const linkSchema = new Schema({
     hash: { type: String, required: true},
-    userId: { type: Types.ObjectId, ref: 'User', required: true},
+    userId: { type: Types.ObjectId, ref: 'User', required: true,
+    unique: true},
 })
 
 const User = mongoose.model('User',userSchema);

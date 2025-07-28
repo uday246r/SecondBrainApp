@@ -6,6 +6,7 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import {config} from "./config";
 import authMiddleware from "./middleware";
+import { random } from "./utils";
 // import jwt from "jsonwebtoken";
 
 const app = express();
@@ -15,7 +16,7 @@ const signupSchema = z.object({
     username: z.string().email(),
     password: z.string()
     .min(3, {message: "Password must be at least 8 character long"})
-    .max(8, {message: "Password must not exceed 8 characters"}),
+    .max(10, {message: "Password must not exceed 8 characters"}),
     firstName: z.string(),
     lastName: z.string().optional(),
 })
@@ -122,7 +123,7 @@ const contentSchema = z.object({
 })
 
 app.post("/api/v1/content",authMiddleware, async(req,res)=>{
-   // console.log("enter in post content");
+   console.log(req.body);
     try{
     const {success} = contentSchema.safeParse(req.body);
     if(!success){
@@ -161,14 +162,7 @@ try{
     }
     //@ts-ignore
     const content = await Content.find({userId:user})
-    .populate({
-        path:"tags",
-        model:"Tag"
-    })
-    .populate({
-        path:"userId",
-        model:"User"
-    });
+    .populate("userId","firstName lastName");
     // console.log(content);
 
     return res.status(200).json({ content });
@@ -177,16 +171,99 @@ try{
 }
 })
 
-app.delete("api/v1/brain/content", (req,res)=>{
+app.delete("/api/v1/brain/content",authMiddleware, async(req,res)=>{
+   
+    try{
+    // @ts-ignore
+    const user = req.userId;
 
+    if(!user){
+        return res.status(400).json({message: "User not found"})
+    }
+    const contentId = req.body.contentId;
+
+    if(!contentId){
+        return res.status(404).json({message: "Content not found to delete"})
+    }
+       // @ts-ignore
+    await Content.deleteMany({contentId, userId: req.userId});
+
+   return res.json({message: "Content deleted successfully"});
+} catch(err){
+    return res.status(500).json({message: "Internal Server Error"})
+}
 })
 
-app.post("/api/v1/brain/share", (req,res)=>{
+app.post("/api/v1/brain/share", authMiddleware, async(req,res)=>{
+    const share = req.body.share;
+    if(share){
 
+        const existingLink = await Link.findOne({
+            //@ts-ignore
+            userId: req.userId
+        });
+
+        if(existingLink){
+            res.json({
+                hash: existingLink.hash
+            })
+            return;
+        }
+        const hash = random(10);
+        await Link .create({
+            //@ts-ignore
+            userId: req.userId,
+            hash: hash
+        })
+
+        res.json({
+            message: "/share/" + hash
+        })
+    }
+    else{
+        await Link.deleteOne({
+           // @ts-ignore
+            userId: req.userId
+        });
+
+    res.json({
+        message: "Removed link"
+    })
+}
 })
 
-app.get("/api/v1/brain/:shareLink", (req,res)=>{
+app.get("/api/v1/brain/:shareLink", async(req,res)=>{
+    const hash  = req.params.shareLink;
 
+    const link = await Link.findOne({
+        hash
+    });
+
+    if(!link){
+        res.status(411).json({
+            message: "Sorry incorrect input"
+        })
+        return;
+    }
+
+    const content = await Content.find({
+        userId: link.userId
+    })
+
+    const user = await User.findOne({
+        _id: link.userId
+    })
+
+    if(!user){
+        res.status(411).json({
+            message: "User not found, error should ideally not happen"
+        })
+        return;
+    }
+    res.json({
+        username: user.username,
+        content: content
+    })
 })
 
 app.listen(3000,()=>{
