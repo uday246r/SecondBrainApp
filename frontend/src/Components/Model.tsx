@@ -1,8 +1,8 @@
 import { CrossIcon } from "../icons/CrossIcon";
 import { Button } from "./Button";
-// import { InputBox } from "./InputBox";
+import { Input } from "./Input";
 
-export function Model({open, onClose}){
+export function Model({open, onClose}: {open: boolean; onClose: () => void}){
     return<div>
         {open && <div 
         className="w-screen h-screen 
@@ -33,8 +33,3 @@ export function Model({open, onClose}){
     </div>
 }
 
-function Input({onChange, placeholder}: {onChange: () => void}){
-    return <div>
-        <input placeholder={placeholder} type={"text"} className="px-4 py-2 border rounded m-2" onChange={onChange} />
-    </div>
-}
