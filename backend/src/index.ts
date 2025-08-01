@@ -1,5 +1,5 @@
 import express from "express"; 
-import { User, Content, Link, Tag, contentTypes} from "./db"
+import { User, Content, Link, Tag} from "./db"
 import mongoose from "mongoose";
 import {z} from "zod";
 import argon2 from "argon2";
@@ -11,7 +11,7 @@ import { random } from "./utils";
 import cors from "cors";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cors());
 const signupSchema = z.object({
     username: z.string().email(),
@@ -117,58 +117,75 @@ app.post("/api/v1/signin",async(req,res)=>{
 });
 
 const contentSchema = z.object({
-    type: z.enum(contentTypes),
-    link: z.string().url(),
-    title: z.string(),
-    tags: z.array(z.string()),
+    type: z.enum(['youtube', 'twitter', 'stackoverflow', 'github', 'medium', 'reddit', 'other']),
+    link: z.string().min(1, "Link is required"),
+    title: z.string().min(1, "Title is required"),
+    tags: z.array(z.string()).optional(),
 })
 
 app.post("/api/v1/content",authMiddleware, async(req,res)=>{
-   console.log(req.body);
+    console.log("=== CONTENT POST REQUEST ===");
+    console.log("Request body:", req.body);
+    console.log("Request headers:", req.headers);
+    
     try{
-    const {success} = contentSchema.safeParse(req.body);
-    if(!success){
-        return res.status(400).json({message: "Invalid content format"})
+        const result = contentSchema.safeParse(req.body);
+        if(!result.success){
+            console.log("Validation errors:", result.error);
+            return res.status(400).json({
+                message: "Invalid format", 
+                details: result.error.issues
+            })
+        }
+        
+        console.log("Validation successful, creating content...");
+        const { type, link, title, tags} = req.body;
+
+        console.log("Creating content with:", { type, link, title, userId: (req as any).userId });
+
+        const createdContent = await Content.create({
+            type,
+            link,
+            title,
+            //@ts-ignore
+            userId: req.userId,
+            tags: [], 
+        });
+
+        console.log("Content created successfully:", createdContent);
+
+        return res.status(200).json({message: "Content added successfully"})
+    } catch(err: any){
+        console.log("Error in content posting:", err);
+        console.log("Error message:", err.message);
+        console.log("Error stack:", err.stack);
+        return res.status(500).json({
+            message: "Internal server error", 
+            error: err.message,
+            details: "Check server logs for more information"
+        })
     }
-// console.log("Incoming data:", req.body);
-
-    const { type, link, title, tags} = req.body;
-
-    await Content.create({
-        type,
-        link,
-        title,
-        //@ts-ignore
-        userId: req.userId,
-        tags:[],
-    })
-
-// console.log("Parsed Zod:", data);
-
-    return res.status(200).json({message: "Content added successfully"})
-} catch(err){
-    console.log("error in content posting")
-    return res.status(500).json({messages: "Internal server error"})
-}
-
 })
 
 app.get("/api/v1/content",authMiddleware, async(req,res)=>{
+    // console.log("here");
 try{
     //@ts-ignore
     const user = req.userId;
     
     if(!user){
+        console.log("User not found in request");
         return res.status(404).json({message: "User not found"})
     }
     //@ts-ignore
     const content = await Content.find({userId:user})
     .populate("userId","firstName lastName");
-    // console.log(content);
+    console.log("Found content:", content);
 
     return res.status(200).json({ content });
-} catch (err) {
-    return res.status(500).json({message: "Internal error"});
+} catch (err: any) {
+    console.log("Error in GET content:", err);
+    return res.status(500).json({message: "Internal error", error: err.message});
 }
 })
 
@@ -218,7 +235,7 @@ app.post("/api/v1/brain/share", authMiddleware, async(req,res)=>{
         })
 
         res.json({
-            message: "/share/" + hash
+            hash: hash
         })
     }
     else{
@@ -233,16 +250,17 @@ app.post("/api/v1/brain/share", authMiddleware, async(req,res)=>{
 }
 })
 
-app.get("/api/v1/brain/:shareLink", async(req,res)=>{
-    const hash  = req.params.shareLink;
+app.get("/api/v1/brain/share/:hash", async(req,res)=>{
+    const hash  = req.params.hash;
 
     const link = await Link.findOne({
         hash
     });
 
     if(!link){
-        res.status(411).json({
-            message: "Sorry incorrect input"
+        res.status(404).json({
+            success: false,
+            message: "Brain not found or no longer available"
         })
         return;
     }
@@ -256,14 +274,25 @@ app.get("/api/v1/brain/:shareLink", async(req,res)=>{
     })
 
     if(!user){
-        res.status(411).json({
-            message: "User not found, error should ideally not happen"
+        res.status(404).json({
+            success: false,
+            message: "User not found"
         })
         return;
     }
+
+    // Transform content to match frontend expectations
+    const transformedContent = content.map(item => ({
+        id: item._id.toString(),
+        title: item.title,
+        link: item.link,
+        type: item.type
+    }));
+
     res.json({
-        username: user.username,
-        content: content
+        success: true,
+        brainTitle: `${user.firstName}'s Brain`,
+        contents: transformedContent
     })
 })
 

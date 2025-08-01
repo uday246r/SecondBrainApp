@@ -7,6 +7,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("./config");
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
+    console.log("inside auth");
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(403).json({ error: "authHeaders not found" });
     }
@@ -19,7 +20,7 @@ const authMiddleware = (req, res, next) => {
             next();
         }
         else {
-            return res.status(403).json({});
+            return res.status(403).json({ message: "Enable to decoded" });
         }
     }
     catch (err) {

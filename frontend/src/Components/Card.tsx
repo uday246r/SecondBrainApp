@@ -1,12 +1,23 @@
 import { ShareIcon } from "../icons/ShareIcon";
+import { 
+    TwitterContent, 
+    YouTubeContent, 
+    StackOverflowContent, 
+    GitHubContent, 
+    MediumContent, 
+    RedditContent, 
+    LinkedInContent, 
+    GenericContent 
+} from "./ContentFetchers";
 
 interface CardProps{
     title: string;
     link: string;
-    type: "twitter" | "youtube";
+    type: "twitter" | "youtube" | "stackoverflow" | "github" | "medium" | "reddit" | "other";
 }
 
 export function Card({title, link, type}: CardProps){
+
     return <div>
     <div className=" p-4 bg-white border-gray-200 rounded-md shadow-md outline-slate-200 max-w-72 border min-h-48 min-w-72">
         <div className="flex justify-between">
@@ -18,7 +29,7 @@ export function Card({title, link, type}: CardProps){
             </div>
             <div className="flex items-center">
                 <div className="pr-2 text-gray-500">
-                    <a href={link} target="_blank">
+                    <a href={link} target="_blank" rel="noopener noreferrer">
                     <ShareIcon />
                     </a>
                 </div>
@@ -27,19 +38,39 @@ export function Card({title, link, type}: CardProps){
                 </div>
             </div>
         </div>
-<div className="pt-4">
-{
-    type === 'youtube' &&  <iframe className="w-full" src={link.replace('watch','embed')} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+        <div className="pt-4">
+            {type === 'youtube' && (
+                <YouTubeContent link={link} title={title} />
+            )}
 
-}
+            {type === 'twitter' && (
+                <TwitterContent link={link} title={title} />
+            )}
 
-{ type === 'twitter' && <blockquote className="twitter-tweet">
-    <a href={link.replace('x.com','twitter.com')}></a>
-   </blockquote>
- }
- 
-</div>
+            {type === 'stackoverflow' && (
+                <StackOverflowContent link={link} title={title} />
+            )}
 
+            {type === 'github' && (
+                <GitHubContent link={link} title={title} />
+            )}
+
+            {type === 'medium' && (
+                <MediumContent link={link} title={title} />
+            )}
+
+            {type === 'reddit' && (
+                <RedditContent link={link} title={title} />
+            )}
+
+            {type === 'other' && link.includes('linkedin.com') && (
+                <LinkedInContent link={link} title={title} />
+            )}
+
+            {type === 'other' && !link.includes('linkedin.com') && (
+                <GenericContent link={link} title={title} />
+            )}
+        </div>
     </div>
     </div>
 }

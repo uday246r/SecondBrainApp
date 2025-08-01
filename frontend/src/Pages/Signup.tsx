@@ -16,13 +16,28 @@ export function Signup(){
         const username = usernameRef.current?.value;
         const password = passwordRef.current?.value;
         const firstName = firstNameRef.current?.value;
-        await axios.post(`${BACKEND_URL}/api/v1/signup`,{
-                username,
-                password,
-                firstName
-        });
-        alert("You have signed up!")
-        navigate("/signin");
+        
+        if (!username || !password || !firstName) {
+            alert("Please fill in all fields");
+            return;
+        }
+        
+        try {
+            await axios.post(`${BACKEND_URL}/api/v1/signup`,{
+                    username,
+                    password,
+                    firstName
+            });
+            alert("You have signed up!")
+            navigate("/signin");
+        } catch (error: any) {
+            console.error("Signup error:", error);
+            if (error.response?.data?.message) {
+                alert(`Signup failed: ${error.response.data.message}`);
+            } else {
+                alert("Signup failed. Please try again.");
+            }
+        }
     }
     return <div className="h-screen w-screen bg-gray-200 flex justify-center items-center">
         <div className="bg-white rounded-xl border min-w-48 p-8">

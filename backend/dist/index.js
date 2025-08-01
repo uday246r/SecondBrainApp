@@ -19,14 +19,17 @@ const argon2_1 = __importDefault(require("argon2"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("./config");
 const middleware_1 = __importDefault(require("./middleware"));
+const utils_1 = require("./utils");
 // import jwt from "jsonwebtoken";
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
+app.use((0, cors_1.default)());
 const signupSchema = zod_1.z.object({
     username: zod_1.z.string().email(),
     password: zod_1.z.string()
         .min(3, { message: "Password must be at least 8 character long" })
-        .max(8, { message: "Password must not exceed 8 characters" }),
+        .max(10, { message: "Password must not exceed 8 characters" }),
     firstName: zod_1.z.string(),
     lastName: zod_1.z.string().optional(),
 });
@@ -109,19 +112,19 @@ app.post("/api/v1/signin", (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 }));
 const contentSchema = zod_1.z.object({
-    type: zod_1.z.enum(db_1.contentTypes),
+    type: zod_1.z.enum(['youtube', 'twitter']),
     link: zod_1.z.string().url(),
     title: zod_1.z.string(),
-    tags: zod_1.z.array(zod_1.z.string()),
+    tags: zod_1.z.array(zod_1.z.string()).optional(),
 });
 app.post("/api/v1/content", middleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // console.log("enter in post content");
+    console.log("inside post request");
     try {
         const { success } = contentSchema.safeParse(req.body);
         if (!success) {
-            return res.status(400).json({ message: "Invalid content format" });
+            return res.status(400).json({ message: "Invalid format" });
         }
-        // console.log("Incoming data:", req.body);
+        console.log("Incoming data:", req.body);
         const { type, link, title, tags } = req.body;
         yield db_1.Content.create({
             type,
@@ -140,6 +143,7 @@ app.post("/api/v1/content", middleware_1.default, (req, res) => __awaiter(void 0
     }
 }));
 app.get("/api/v1/content", middleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // console.log("here");
     try {
         //@ts-ignore
         const user = req.userId;
@@ -147,24 +151,95 @@ app.get("/api/v1/content", middleware_1.default, (req, res) => __awaiter(void 0,
             return res.status(404).json({ message: "User not found" });
         }
         //@ts-ignore
-        const content = yield db_1.Content.findOne({ userId })
-            .populate("type")
-            .populate("tags")
-            .populate("link")
-            .populate("title")
-            .populate("userId");
+        const content = yield db_1.Content.find({ userId: user })
+            .populate("userId", "firstName lastName");
+        // console.log(content);
         return res.status(200).json({ content });
     }
     catch (err) {
         return res.status(500).json({ message: "Internal error" });
     }
 }));
-app.delete("api/v1/brain/content", (req, res) => {
-});
-app.post("/api/v1/brain/share", (req, res) => {
-});
-app.get("/api/v1/brain/:shareLink", (req, res) => {
-});
+app.delete("/api/v1/brain/content", middleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // @ts-ignore
+        const user = req.userId;
+        if (!user) {
+            return res.status(400).json({ message: "User not found" });
+        }
+        const contentId = req.body.contentId;
+        if (!contentId) {
+            return res.status(404).json({ message: "Content not found to delete" });
+        }
+        // @ts-ignore
+        yield db_1.Content.deleteMany({ contentId, userId: req.userId });
+        return res.json({ message: "Content deleted successfully" });
+    }
+    catch (err) {
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}));
+app.post("/api/v1/brain/share", middleware_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const share = req.body.share;
+    if (share) {
+        const existingLink = yield db_1.Link.findOne({
+            //@ts-ignore
+            userId: req.userId
+        });
+        if (existingLink) {
+            res.json({
+                hash: existingLink.hash
+            });
+            return;
+        }
+        const hash = (0, utils_1.random)(10);
+        yield db_1.Link.create({
+            //@ts-ignore
+            userId: req.userId,
+            hash: hash
+        });
+        res.json({
+            message: "/share/" + hash
+        });
+    }
+    else {
+        yield db_1.Link.deleteOne({
+            // @ts-ignore
+            userId: req.userId
+        });
+        res.json({
+            message: "Removed link"
+        });
+    }
+}));
+app.get("/api/v1/brain/:shareLink", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const hash = req.params.shareLink;
+    const link = yield db_1.Link.findOne({
+        hash
+    });
+    if (!link) {
+        res.status(411).json({
+            message: "Sorry incorrect input"
+        });
+        return;
+    }
+    const content = yield db_1.Content.find({
+        userId: link.userId
+    });
+    const user = yield db_1.User.findOne({
+        _id: link.userId
+    });
+    if (!user) {
+        res.status(411).json({
+            message: "User not found, error should ideally not happen"
+        });
+        return;
+    }
+    res.json({
+        username: user.username,
+        content: content
+    });
+}));
 app.listen(3000, () => {
     console.log("server started...");
 });

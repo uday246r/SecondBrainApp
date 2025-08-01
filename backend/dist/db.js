@@ -29,7 +29,7 @@ const userSchema = new Schema({
 const tagSchema = new Schema({
     title: { type: String, required: true, unique: true }
 });
-const contentTypes = ['image', 'video', 'article', 'audio'];
+const contentTypes = ['youtube', 'twitter'];
 exports.contentTypes = contentTypes;
 const contentSchema = new mongoose_1.default.Schema({
     link: { type: String, required: true },
@@ -40,7 +40,8 @@ const contentSchema = new mongoose_1.default.Schema({
 });
 const linkSchema = new Schema({
     hash: { type: String, required: true },
-    userId: { type: Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Types.ObjectId, ref: 'User', required: true,
+        unique: true },
 });
 const User = mongoose_1.default.model('User', userSchema);
 exports.User = User;

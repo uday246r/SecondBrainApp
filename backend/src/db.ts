@@ -32,7 +32,7 @@ const tagSchema = new Schema({
 });
 
 
-const contentTypes = ['image', 'video', 'article', 'audio'];
+const contentTypes = ['youtube','twitter','stackoverflow','github','medium','reddit','other'];
 const contentSchema = new mongoose.Schema({
     link: { type: String, required: true },
     type: { type: String, enum: contentTypes, required: true },
