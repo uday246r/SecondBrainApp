@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @theme {
-      --bg-slate-100: "#eeeeef";
-      --bg-slate-200: "#e6e9ed";
-      --bg-slate-600: "#95989c";
+      --bg-gray-50: rgba(255, 255, 255, 0.5);
+      --bg-gray-100: "#eeeeef";
+      --bg-gray-200: "#e6e9ed";
+      --bg-gray-600: "#95989c";
       
       --bg-purple-200: "#d9ddee";
       --bg-purple-500: "#9492db";

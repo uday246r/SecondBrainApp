@@ -8,10 +8,11 @@ import {config} from "./config";
 import authMiddleware from "./middleware";
 import { random } from "./utils";
 // import jwt from "jsonwebtoken";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
-
+app.use(cors());
 const signupSchema = z.object({
     username: z.string().email(),
     password: z.string()
