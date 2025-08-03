@@ -8,8 +8,8 @@ interface JwtPayload {
 
 const authMiddleware = (req: Request,res: Response,next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    console.log("=== AUTH MIDDLEWARE ===");
-    console.log("Auth header:", authHeader);
+    // console.log("=== AUTH MIDDLEWARE ===");
+    // console.log("Auth header:", authHeader);
     
     if(!authHeader || !authHeader.startsWith('Bearer ')){
         console.log("Auth header not found or invalid format");

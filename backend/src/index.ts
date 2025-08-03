@@ -200,17 +200,24 @@ app.delete("/api/v1/brain/content",authMiddleware, async(req,res)=>{
     }
     const contentId = req.body.contentId;
 
-    if(!contentId){
-        return res.status(404).json({message: "Content not found to delete"})
+    if(!contentId || !mongoose.Types.ObjectId.isValid(contentId)){
+        return res.status(404).json({message: "Invalid content ID"});
     }
-       // @ts-ignore
-    await Content.deleteMany({contentId, userId: req.userId});
+        console.log("user",user._id);
+        const result = await Content.deleteOne({
+        _id: new mongoose.Types.ObjectId(contentId),
+         userId: new mongoose.Types.ObjectId(user)
+        });
+
+        if(result.deletedCount == 0){
+            return res.status(404).json({message: "Content not found or not authorized"});
+        }
 
    return res.json({message: "Content deleted successfully"});
 } catch(err){
     return res.status(500).json({message: "Internal Server Error"})
 }
-})
+});
 
 app.post("/api/v1/brain/share", authMiddleware, async(req,res)=>{
     const share = req.body.share;
