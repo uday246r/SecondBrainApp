@@ -16,15 +16,19 @@ export function Dashboard() {
   const [shareAlertOpen, setShareAlertOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const {contents, Refresh} = useContent();
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   useEffect(()=>{
     Refresh();
   }, [modelOpen])
 
+  const filteredContents = selectedType ? contents.filter((c:any)=> c.type === selectedType) : contents;
+
   return <div>
-  <Sidebar/>
 
     <div className="p-4 ml-72 min-h-screen bg-gray-100 border-2">
+
+      <Sidebar onFilterClick={setSelectedType}  selectedType={selectedType} />
 
         <Model open={modelOpen} onClose={()=>{
           setModelOpen(false);
@@ -59,8 +63,8 @@ export function Dashboard() {
       </div>
       
       <div className="flex gap-4 flex-wrap">
-        {contents && contents.length > 0 ? (
-          contents.map((content: any, index: number) => (
+        {filteredContents && filteredContents.length > 0 ? (
+          filteredContents.map((content: any, index: number) => (
             <Card 
               key={index}
               type={content.type} 

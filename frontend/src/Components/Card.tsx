@@ -1,3 +1,5 @@
+import axios from "axios";
+import { DeleteIcon } from "../icons/DeleteIcon";
 import { ShareIcon } from "../icons/ShareIcon";
 import { 
     TwitterContent, 
@@ -9,15 +11,35 @@ import {
     LinkedInContent, 
     GenericContent 
 } from "./ContentFetchers";
+import { BACKEND_URL } from "../Pages/config";
 
 interface CardProps{
     title: string;
     link: string;
     type: "twitter" | "youtube" | "stackoverflow" | "github" | "medium" | "reddit" | "other";
+    onClick?: () => void;
 }
 
-export function Card({title, link, type}: CardProps){
+export function Card({title, link, type, onClick}: CardProps){
 
+    async function handleDelete(){
+        // axios.delete(`${BACKEND_URL}/api/v1/brain/content`)
+        const response = await axios.get(`${BACKEND_URL}/api/v1/content`,{
+            
+                headers: {
+                    "Authorization" : `Bearer ${localStorage.getItem("token")}`
+                }
+        })
+        //@ts-ignore
+        const contentId = response.data.content[0]._id;
+
+        const deleteContent = await axios.get(`${BACKEND_URL}/api/v1/content/${contentId}`,{
+             headers: {
+                    "Authorization" : `Bearer ${localStorage.getItem("token")}`
+                }
+        })
+        console.log("ok: ",deleteContent);
+    }
     return <div>
     <div className=" p-4 bg-white border-gray-200 rounded-md shadow-md outline-slate-200 max-w-72 border min-h-48 min-w-72">
         <div className="flex justify-between">
@@ -33,8 +55,8 @@ export function Card({title, link, type}: CardProps){
                     <ShareIcon />
                     </a>
                 </div>
-                <div className="text-gray-500">
-                     <ShareIcon />
+                <div className="text-gray-500" onClick={handleDelete}>
+                     <DeleteIcon />
                 </div>
             </div>
         </div>
