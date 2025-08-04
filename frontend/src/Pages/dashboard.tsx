@@ -62,7 +62,7 @@ export function Dashboard() {
 
       </div>
       
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex gap-4 flex-wrap mt-4">
         {filteredContents && filteredContents.length > 0 ? (
           filteredContents.map((content: any, index: number) => (
             <Card 
